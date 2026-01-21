@@ -2382,22 +2382,6 @@ export default function App() {
   }, [user]);
 
   useEffect(() => {
-    const handleUnload = () => {
-      if (auth.currentUser) {
-        signOut(auth);
-      }
-    };
-
-    window.addEventListener("beforeunload", handleUnload);
-    window.addEventListener("pagehide", handleUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleUnload);
-      window.removeEventListener("pagehide", handleUnload);
-    };
-  }, []);
-
-  useEffect(() => {
     setShowUserMenu(false);
     setShowNotifications(false);
   }, [user]);
