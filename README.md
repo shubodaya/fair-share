@@ -28,13 +28,7 @@ Live site: https://shubodaya.github.io/fair-share/
 
 ---
 
-## Screenshots
-
-Add your screenshots here:
-
-![Dashboard](https://placehold.co/1200x675/0f172a/ffffff?text=Dashboard+Screenshot)
-![Groups](https://placehold.co/1200x675/1f2937/ffffff?text=Groups+Screenshot)
-![Expenses](https://placehold.co/1200x675/111827/ffffff?text=Expenses+Screenshot)
+![Dashboard](dash.png)
 
 ---
 
