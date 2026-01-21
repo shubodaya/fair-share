@@ -23,6 +23,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  Timestamp,
   updateDoc,
   where,
 } from "firebase/firestore";
@@ -147,6 +148,14 @@ function normalizeDate(value) {
   }
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : setMidday(parsed);
+}
+
+function toDateInputValue(value) {
+  const date = normalizeDate(value);
+  if (!date) return "";
+  const offsetMs = date.getTimezoneOffset() * 60 * 1000;
+  const local = new Date(date.getTime() - offsetMs);
+  return local.toISOString().slice(0, 10);
 }
 
 function parseCsv(text) {
@@ -2275,6 +2284,7 @@ export default function App() {
   );
   const [expenseAmount, setExpenseAmount] = useState("");
   const [expenseNote, setExpenseNote] = useState("");
+  const [expenseDate, setExpenseDate] = useState(toDateInputValue(new Date()));
   const [expenseCurrency, setExpenseCurrency] = useState("EUR");
   const [expensePaidBy, setExpensePaidBy] = useState("");
   const [expenseSplitType, setExpenseSplitType] = useState("equal");
@@ -3136,6 +3146,7 @@ export default function App() {
     setExpenseCategory(expenseCategoryOptions[0]);
     setExpenseAmount("");
     setExpenseNote("");
+    setExpenseDate(toDateInputValue(new Date()));
     setExpenseCurrency("EUR");
     setExpensePaidBy("");
     setExpenseSplitType("equal");
@@ -3151,6 +3162,11 @@ export default function App() {
     }
     if (!expenseCategory.trim()) {
       setExpenseError("Enter a category.");
+      return;
+    }
+    const selectedDate = normalizeDate(expenseDate);
+    if (!selectedDate) {
+      setExpenseError("Choose a date.");
       return;
     }
     const payerId = expensePaidBy || user.uid;
@@ -3173,6 +3189,7 @@ export default function App() {
           paidByUid: payerId,
           paidByName: payerName,
           splitType: expenseSplitType,
+          createdAt: Timestamp.fromDate(selectedDate),
           updatedAt: serverTimestamp(),
         });
         const group = groupListWithTotals.find(
@@ -3198,7 +3215,7 @@ export default function App() {
           paidByName: payerName,
           splitType: expenseSplitType,
           createdBy: user.uid,
-          createdAt: serverTimestamp(),
+          createdAt: Timestamp.fromDate(selectedDate),
         });
         const group = groupListWithTotals.find(
           (item) => item.id === expenseGroupId
@@ -3228,6 +3245,9 @@ export default function App() {
     setExpenseCategory(expense.category || "");
     setExpenseAmount(expense.amount ? String(expense.amount) : "");
     setExpenseNote(expense.note || "");
+    setExpenseDate(
+      toDateInputValue(expense.createdAt || expense.updatedAt || new Date())
+    );
     setExpenseCurrency(expense.currency || "EUR");
     setExpensePaidBy(expense.paidByUid || expense.createdBy || "");
     setExpenseSplitType(expense.splitType || "equal");
@@ -4450,6 +4470,14 @@ export default function App() {
                   value={expenseAmount}
                   onChange={(event) => setExpenseAmount(event.target.value)}
                   placeholder="120"
+                />
+              </label>
+              <label>
+                Date
+                <input
+                  type="date"
+                  value={expenseDate}
+                  onChange={(event) => setExpenseDate(event.target.value)}
                 />
               </label>
               <label>
