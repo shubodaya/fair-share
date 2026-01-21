@@ -1,4 +1,7 @@
 {
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "hosting": {
     "public": "dist",
     "ignore": [
@@ -9,5 +12,8 @@
     "rewrites": [
       { "source": "**", "destination": "/index.html" }
     ]
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }
