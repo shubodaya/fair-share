@@ -1,0 +1,20 @@
+{
+    "name":  "fair-share",
+    "private":  true,
+    "version":  "0.0.0",
+    "type":  "module",
+    "scripts":  {
+                    "dev":  "vite",
+                    "build":  "tsc \u0026\u0026 vite build",
+                    "preview":  "vite preview"
+                },
+    "devDependencies":  {
+                            "vite":  "^5.4.1",
+                            "@vitejs/plugin-react":  "^4.3.1"
+                        },
+    "dependencies":  {
+                         "react":  "^18.2.0",
+                         "firebase":  "^10.12.2",
+                         "react-dom":  "^18.2.0"
+                     }
+}
