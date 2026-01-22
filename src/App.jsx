@@ -105,6 +105,15 @@ const pieColors = [
   "#d81b60",
   "#fdd835",
 ];
+const categoryColorMap = {
+  Clothes: "#1e88e5",
+  Food: "#0d47a1",
+};
+
+function getCategoryColor(label, index) {
+  if (categoryColorMap[label]) return categoryColorMap[label];
+  return pieColors[index % pieColors.length];
+}
 
 const SESSION_TIMEOUT_MS = 10 * 60 * 1000;
 const ACTIVITY_EVENTS = [
@@ -787,7 +796,7 @@ function StackedBarChart({ data, categories }) {
                     className="stacked-chart__segment"
                     style={{
                       height: `${height}%`,
-                      background: pieColors[idx % pieColors.length],
+                      background: getCategoryColor(cat, idx),
                     }}
                     title={`${cat}: ${value}`}
                   />
@@ -803,7 +812,7 @@ function StackedBarChart({ data, categories }) {
           <div key={cat}>
             <span
               className="pie__dot"
-              style={{ background: pieColors[idx % pieColors.length] }}
+              style={{ background: getCategoryColor(cat, idx) }}
             />
             {cat}
           </div>
@@ -1491,7 +1500,7 @@ function DashboardView({
             label,
             value: amount,
             currency: summaryCurrency,
-            color: pieColors[index % pieColors.length],
+            color: getCategoryColor(label, index),
           }))
           .sort((a, b) => b.value - a.value)
           .slice(0, 6);
@@ -1881,7 +1890,7 @@ function InsightView({
       amount,
       value: amount,
       currency: currencyOverride || itemCurrency(filteredExpenses, label),
-      color: pieColors[index % pieColors.length],
+      color: getCategoryColor(label, index),
     }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 6);
