@@ -98,12 +98,12 @@ const groupTypes = [
   "Family",
 ];
 const pieColors = [
-  "#1f7a63",
-  "#2cbf96",
-  "#ffd166",
-  "#f4978e",
-  "#b5179e",
-  "#4ea8de",
+  "#2e7d32",
+  "#f9a825",
+  "#e53935",
+  "#8e24aa",
+  "#d81b60",
+  "#fdd835",
 ];
 
 const SESSION_TIMEOUT_MS = 10 * 60 * 1000;
