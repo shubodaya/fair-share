@@ -5,11 +5,13 @@ import {
   EmailAuthProvider,
   onAuthStateChanged,
   reauthenticateWithCredential,
+  setPersistence,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
   updatePassword,
   updateProfile,
+  browserSessionPersistence,
 } from "firebase/auth";
 import {
   addDoc,
@@ -75,6 +77,8 @@ const rangeOptions = [
 
 const currencyOptions = ["EUR", "USD", "GBP", "INR", "CAD", "AUD"];
 const expenseCategoryOptions = [
+  "Clothes",
+  "Food",
   "Groceries",
   "Alcohol",
   "Transport",
@@ -102,7 +106,7 @@ const pieColors = [
   "#4ea8de",
 ];
 
-const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
+const SESSION_TIMEOUT_MS = 10 * 60 * 1000;
 const ACTIVITY_EVENTS = [
   "mousemove",
   "mousedown",
@@ -117,6 +121,11 @@ function itemCurrency(expenses, category) {
       .filter((item) => (item.category || "Other") === category)
       .map((item) => item.currency || "EUR")
   );
+  return set.size === 1 ? [...set][0] : "MIXED";
+}
+
+function overallCurrency(expenses) {
+  const set = new Set(expenses.map((item) => item.currency || "EUR"));
   return set.size === 1 ? [...set][0] : "MIXED";
 }
 
@@ -433,6 +442,27 @@ function hydrateImportedExpenses(items) {
       createdAt: normalizeDate(item.createdAt),
     }))
     .filter((item) => item.createdAt);
+}
+
+function serializeImportedCsvFiles(files) {
+  return files.map((file) => ({
+    id: file.id,
+    name: file.name || "import.csv",
+    text: file.text || "",
+    rowCount: Number(file.rowCount || 0),
+    currency: file.currency || "GBP",
+    importedAt: file.importedAt ? file.importedAt.toISOString() : null,
+  }));
+}
+
+function hydrateImportedCsvFiles(files) {
+  return files
+    .map((file) => ({
+      ...file,
+      currency: file.currency || "GBP",
+      importedAt: normalizeDate(file.importedAt),
+    }))
+    .filter((file) => file.importedAt);
 }
 
 function buildMonthlyTable(expenses, categories, monthKey, currentUserId) {
@@ -1681,6 +1711,11 @@ function GroupsView({
   onCreateGroup,
   groupActionError,
   pendingInviteCount,
+  importedCsvFiles,
+  onLoadCsv,
+  onDeleteCsv,
+  onUpdateCsvCurrency,
+  activeCsvId,
 }) {
   const hasGroups = groupList.length > 0;
   const groupCurrencies = Array.from(
@@ -1761,6 +1796,61 @@ function GroupsView({
           </div>
         </div>
       </article>
+      <article className="card">
+        <div className="card__header">
+          <h3>Imported CSV files</h3>
+        </div>
+        {importedCsvFiles.length ? (
+          <div className="list">
+            {importedCsvFiles.map((file) => (
+              <div
+                className={`list__item ${file.id === activeCsvId ? "is-active" : ""}`}
+                key={file.id}
+              >
+                <div>
+                  <strong>{file.name || "import.csv"}</strong>
+                  <div className="list__meta">
+                    <span>
+                      {file.importedAt
+                        ? file.importedAt.toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })
+                        : "Unknown date"}
+                    </span>
+                    <span>{file.rowCount || 0} rows</span>
+                    {file.id === activeCsvId && <span className="badge">Loaded</span>}
+                  </div>
+                </div>
+                <div className="list__actions">
+                  <select
+                    className="select select--compact"
+                    value={file.currency || "GBP"}
+                    onChange={(event) =>
+                      onUpdateCsvCurrency(file, event.target.value)
+                    }
+                  >
+                    {currencyOptions.map((currency) => (
+                      <option key={currency} value={currency}>
+                        {currency}
+                      </option>
+                    ))}
+                  </select>
+                  <button className="ghost" onClick={() => onLoadCsv(file)}>
+                    Load
+                  </button>
+                  <button className="danger" onClick={() => onDeleteCsv(file)}>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="empty">No CSV files saved yet.</p>
+        )}
+      </article>
     </section>
   );
 }
@@ -1770,6 +1860,7 @@ function InsightView({
   expenses,
   selectedGroupId,
   onSelectGroup,
+  currencyOverride,
 }) {
   const isAll = selectedGroupId === "all";
   const filteredExpenses = isAll
@@ -1783,13 +1874,13 @@ function InsightView({
     const key = item.category || "Other";
     acc.set(key, (acc.get(key) || 0) + Number(item.amount || 0));
     return acc;
-  }, new Map());
+  }, new Map(expenseCategoryOptions.map((category) => [category, 0])));
   const categoryData = Array.from(categoryTotals.entries())
     .map(([label, amount], index) => ({
       label,
       amount,
       value: amount,
-      currency: itemCurrency(filteredExpenses, label),
+      currency: currencyOverride || itemCurrency(filteredExpenses, label),
       color: pieColors[index % pieColors.length],
     }))
     .sort((a, b) => b.value - a.value)
@@ -1799,7 +1890,7 @@ function InsightView({
     label: group.name,
     amount: group.total,
     value: group.total,
-    currency: group.currency,
+    currency: currencyOverride || group.currency,
   }));
 
   const topGroups = [...groupTotals]
@@ -2327,6 +2418,9 @@ export default function App() {
   const [noteDraft, setNoteDraft] = useState("");
   const [dashboardTiles, setDashboardTiles] = useState(defaultDashboardTiles);
   const [importedExpenses, setImportedExpenses] = useState([]);
+  const [importedCsvFiles, setImportedCsvFiles] = useState([]);
+  const [importCurrencyOverride, setImportCurrencyOverride] = useState("");
+  const [activeCsvId, setActiveCsvId] = useState("");
   const [importError, setImportError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -2341,6 +2435,7 @@ export default function App() {
   }, [darkMode]);
 
   useEffect(() => {
+    setPersistence(auth, browserSessionPersistence).catch(() => {});
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
@@ -2418,6 +2513,7 @@ export default function App() {
       selectedGroupId,
       insightGroupId,
       importedExpenses: serializeImportedExpenses(importedExpenses),
+      importedCsvFiles: serializeImportedCsvFiles(importedCsvFiles),
     };
     setDoc(
       doc(db, "users", user.uid),
@@ -2432,6 +2528,7 @@ export default function App() {
     selectedGroupId,
     insightGroupId,
     importedExpenses,
+    importedCsvFiles,
   ]);
 
   useEffect(() => {
@@ -2642,6 +2739,9 @@ export default function App() {
           }
           if (Array.isArray(prefs.importedExpenses)) {
             setImportedExpenses(hydrateImportedExpenses(prefs.importedExpenses));
+          }
+          if (Array.isArray(prefs.importedCsvFiles)) {
+            setImportedCsvFiles(hydrateImportedCsvFiles(prefs.importedCsvFiles));
           }
           setPreferencesLoaded(true);
         }
@@ -3012,9 +3112,15 @@ export default function App() {
       });
   }, [dashboardExpenses]);
 
-  const summaryCurrency = useMemo(() => "GBP", [filteredExpenses]);
+  const summaryCurrency = useMemo(() => {
+    if (importCurrencyOverride) return importCurrencyOverride;
+    return overallCurrency(filteredExpenses);
+  }, [filteredExpenses, importCurrencyOverride]);
 
-  const dashboardSummaryCurrency = useMemo(() => "GBP", []);
+  const dashboardSummaryCurrency = useMemo(() => {
+    if (importCurrencyOverride) return importCurrencyOverride;
+    return overallCurrency(dashboardExpenses);
+  }, [dashboardExpenses, importCurrencyOverride]);
 
   const pageTitle = {
     Dashboard: "Track group expenses and settle balances in minutes.",
@@ -3615,8 +3721,59 @@ export default function App() {
     }
   };
 
+  const applyImportedExpenses = (imported, currencyOverride) => {
+    const override =
+      currencyOverride && currencyOverride !== "MIXED"
+        ? currencyOverride
+        : "";
+    const normalized = override
+      ? imported.map((item) => ({ ...item, currency: override }))
+      : imported;
+    setImportedExpenses(normalized);
+    setImportCurrencyOverride(override);
+    const latestDate = imported.reduce((latest, item) => {
+      if (!item.createdAt) return latest;
+      const current = item.createdAt instanceof Date ? item.createdAt : null;
+      if (!current) return latest;
+      return !latest || current > latest ? current : latest;
+    }, null);
+    const latestMonthKey = latestDate
+      ? latestDate.toISOString().slice(0, 7)
+      : new Date().toISOString().slice(0, 7);
+    setDashboardTiles((prev) =>
+      prev.map((tile) => {
+        if (tile.id === "monthlyTable") {
+          return { ...tile, monthKey: latestMonthKey };
+        }
+        if (tile.id === "categoryPie") {
+          return { ...tile, monthKey: latestMonthKey };
+        }
+        if (tile.rangeKey) {
+          return { ...tile, rangeKey: "1y" };
+        }
+        return tile;
+      })
+    );
+  };
+
+  const rememberImportedCsv = (text, fileName, rowCount) => {
+    const name = fileName || "import.csv";
+    const entry = {
+      id: `csv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      text,
+      rowCount: Number(rowCount || 0),
+      currency: "GBP",
+      importedAt: new Date(),
+    };
+    setImportedCsvFiles((prev) => [entry, ...prev]);
+    setActiveCsvId(entry.id);
+  };
+
   const handleClearImportedData = () => {
     setImportedExpenses([]);
+    setImportCurrencyOverride("");
+    setActiveCsvId("");
     setImportError("");
     const defaultMonthKey = new Date().toISOString().slice(0, 7);
     setDashboardTiles((prev) =>
@@ -3657,30 +3814,8 @@ export default function App() {
         setImportError("No valid rows found in the CSV file.");
         return;
       }
-      setImportedExpenses(imported);
-      const latestDate = imported.reduce((latest, item) => {
-        if (!item.createdAt) return latest;
-        const current = item.createdAt instanceof Date ? item.createdAt : null;
-        if (!current) return latest;
-        return !latest || current > latest ? current : latest;
-      }, null);
-      const latestMonthKey = latestDate
-        ? latestDate.toISOString().slice(0, 7)
-        : new Date().toISOString().slice(0, 7);
-      setDashboardTiles((prev) =>
-        prev.map((tile) => {
-          if (tile.id === "monthlyTable") {
-            return { ...tile, monthKey: latestMonthKey };
-          }
-          if (tile.id === "categoryPie") {
-            return { ...tile, monthKey: latestMonthKey };
-          }
-          if (tile.rangeKey) {
-            return { ...tile, rangeKey: "1y" };
-          }
-          return tile;
-        })
-      );
+      applyImportedExpenses(imported, "GBP");
+      rememberImportedCsv(text, file.name, imported.length);
     };
     const reader = new FileReader();
     reader.onload = () => {
@@ -3699,6 +3834,37 @@ export default function App() {
       setImportError("Unable to read the CSV file.");
     };
     reader.readAsText(file);
+  };
+
+  const handleLoadStoredCsv = (csvFile) => {
+    if (!csvFile || !csvFile.text) return;
+    if (!user) {
+      setImportError("Sign in to import CSV data.");
+      return;
+    }
+    setImportError("");
+    const imported = buildImportedExpenses(csvFile.text, groupList, user.uid);
+    if (!imported.length) {
+      setImportError("No valid rows found in the CSV file.");
+      return;
+    }
+    applyImportedExpenses(imported, csvFile.currency);
+    setActiveCsvId(csvFile.id);
+  };
+
+  const handleDeleteStoredCsv = (csvFile) => {
+    if (!csvFile) return;
+    setImportedCsvFiles((prev) => prev.filter((file) => file.id !== csvFile.id));
+    setActiveCsvId((prev) => (prev === csvFile.id ? "" : prev));
+  };
+
+  const handleUpdateStoredCsvCurrency = (csvFile, nextCurrency) => {
+    if (!csvFile) return;
+    setImportedCsvFiles((prev) =>
+      prev.map((file) =>
+        file.id === csvFile.id ? { ...file, currency: nextCurrency } : file
+      )
+    );
   };
 
   const handleExportDashboardCsv = (monthlyTable) => {
@@ -4210,14 +4376,27 @@ export default function App() {
             onCreateGroup={openNewGroupModal}
             groupActionError={groupActionError}
             pendingInviteCount={sentInvites.length}
+            importedCsvFiles={importedCsvFiles}
+            onLoadCsv={handleLoadStoredCsv}
+            onDeleteCsv={(file) =>
+              openConfirmDialog({
+                title: "Delete CSV file",
+                message: `Delete "${file.name || "import.csv"}"?`,
+                confirmLabel: "Delete file",
+                onConfirm: () => handleDeleteStoredCsv(file),
+              })
+            }
+            onUpdateCsvCurrency={handleUpdateStoredCsvCurrency}
+            activeCsvId={activeCsvId}
           />
         )}
         {activeNav === "Insight" && (
           <InsightView
-            groupList={groupListWithTotals}
-            expenses={filteredExpenses}
+            groupList={dashboardGroupListWithTotals}
+            expenses={dashboardExpenses}
             selectedGroupId={insightGroupId}
             onSelectGroup={setInsightGroupId}
+            currencyOverride={importCurrencyOverride}
           />
         )}
         {activeNav === "Expense" && (

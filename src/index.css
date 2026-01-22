@@ -705,10 +705,16 @@ select {
   border-radius: 14px;
   background: var(--surface-2);
   gap: 12px;
+  border: 1px solid transparent;
 }
 
 .list--compact {
   gap: 8px;
+}
+
+.list__item.is-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(31, 122, 99, 0.2);
 }
 
 .list__item span {
@@ -727,6 +733,16 @@ select {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.badge {
+  background: var(--surface);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .list__actions p {
@@ -1229,6 +1245,26 @@ select {
     left: auto;
     width: min(280px, calc(100% - 32px));
   }
+
+  .dashboard-tile__header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .dashboard-tile__header h3 {
+    margin: 0;
+  }
+
+  .tile-controls {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .tile-controls .select--compact {
+    flex: 1 1 140px;
+  }
 }
 
 @media (max-width: 560px) {
@@ -1435,6 +1471,8 @@ select {
   width: min(460px, 100%);
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
 }
 
 .modal__header {
