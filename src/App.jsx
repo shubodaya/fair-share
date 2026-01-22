@@ -109,7 +109,7 @@ const pieColors = [
 const categoryColorMap = {
   Groceries: "#2e7d32",
   Alcohol: "#e53935",
-  Transport: "#d81b60",
+  Transport: "#f48fb1",
   "Recurring Spend": "#8e24aa",
   Miscellaneous: "#f9a825",
   Clothes: "#64b5f6",
