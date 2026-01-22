@@ -99,14 +99,20 @@ const groupTypes = [
 ];
 const pieColors = [
   "#2e7d32",
-  "#f9a825",
   "#e53935",
-  "#8e24aa",
   "#d81b60",
-  "#fdd835",
+  "#8e24aa",
+  "#f9a825",
+  "#64b5f6",
+  "#0d47a1",
 ];
 const categoryColorMap = {
-  Clothes: "#1e88e5",
+  Groceries: "#2e7d32",
+  Alcohol: "#e53935",
+  Transport: "#d81b60",
+  "Recurring Spend": "#8e24aa",
+  Miscellaneous: "#f9a825",
+  Clothes: "#64b5f6",
   Food: "#0d47a1",
 };
 
