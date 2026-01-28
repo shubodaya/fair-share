@@ -6,7 +6,7 @@ Live site: https://shubodaya.github.io/fair-share/
 
 ![Dashboard](dash.png)
 
-Fair Share is a collaborative expense suite for trips, roommates, teams, and any shared budget. It runs on React + Vite, uses Firebase for auth and data, and ships automatically to GitHub Pages.
+Fair Share is a collaborative expense suite for trips, roommates, teams, and any shared budget. It runs on React + Vite, uses Firebase for auth and data by default, and ships automatically to GitHub Pages.
 
 ## Features
 - Account options: email/password or Google sign-in, session auto-logout after inactivity, profile editing, password change, dark/light mode.
@@ -18,34 +18,25 @@ Fair Share is a collaborative expense suite for trips, roommates, teams, and any
 
 ## Tech Stack
 - React 18 + Vite 5 (base path `/fair-share/` for GitHub Pages)
-- Firebase: Authentication and Firestore (groups, expenses, invites, activity, notes, users)
+- Firebase (default) for Authentication and Firestore-style data, but you can point the app at any comparable backend you control.
 - Styling in `src/index.css`, single-page UI in `src/App.jsx`
 - CI/CD: `.github/workflows/pages.yml` builds and deploys `dist` to GitHub Pages on every push to `main`
 
 ## Quick Start
 - Node 20+ and npm installed.
 - Install deps: `npm install`
-- Copy env template: `cp .env.example .env` (or PowerShell `Copy-Item .env.example .env`)
-- Fill Firebase keys in `.env` (see next section).
+- If you will connect your own backend (Firebase or similar), copy the env template: `cp .env.example .env` (or PowerShell `Copy-Item .env.example .env`) and add your service keys. If you just want to use the published backend, you can skip this step.
 - Run locally: `npm run dev`
 - Production build: `npm run build` (preview with `npm run preview`)
 
-## Firebase Setup
-- Create a Firebase project and enable Authentication providers: Email/Password and Google.
-- Create a Firestore database (production or test mode) and note the project ID.
-- Populate `.env` with:
-  - `VITE_FIREBASE_API_KEY`
-  - `VITE_FIREBASE_AUTH_DOMAIN`
-  - `VITE_FIREBASE_PROJECT_ID`
-  - `VITE_FIREBASE_STORAGE_BUCKET`
-  - `VITE_FIREBASE_MESSAGING_SENDER_ID`
-  - `VITE_FIREBASE_APP_ID`
-  - `VITE_FIREBASE_MEASUREMENT_ID`
-- Optional: deploy `firestore.rules` with `firebase deploy --only firestore:rules` after configuring the Firebase CLI.
+## Backend Setup
+- Out of the box, the live site already points to a configured backend, so you can use it as-is.
+- To run with your own data: set up a hosted database with auth (Firebase is a drop-in choice), enable email/password and Google sign-in, create a database, and copy its client keys into `.env` using the names shown in `.env.example`.
+- If you customize Firestore or another backend, adjust `firestore.rules` (or your service rules) to match your security model.
 
 ## Deployment (GitHub Pages)
 - GitHub Actions workflow `pages.yml` builds the site and publishes `dist` to Pages whenever `main` updates.
-- Required repository secrets: `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`, `VITE_FIREBASE_MEASUREMENT_ID`.
+- If you use your own backend, add the matching client keys as repo secrets for the workflow. If you rely on the published backend, no extra secrets are needed.
 - The Vite `base` is set to `/fair-share/`; keep this if deploying to the same Pages path.
 
 ## Project Map
@@ -63,4 +54,4 @@ Fair Share is a collaborative expense suite for trips, roommates, teams, and any
 - `activity` - audit feed entries tied to memberUids.
 - `notes` - personal notes per user.
 
-Fair Share keeps shared spending transparent and fast to reconcile - clone it, drop in your Firebase project keys, and start splitting.
+Fair Share keeps shared spending transparent and fast to reconcile - clone it, point it at your backend (or the published one), and start splitting.
