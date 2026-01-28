@@ -174,6 +174,24 @@ function normalizeDate(value) {
   return Number.isNaN(parsed.getTime()) ? null : setMidday(parsed);
 }
 
+function expenseLatestTime(expense) {
+  const updated =
+    expense?.updatedAt instanceof Date
+      ? expense.updatedAt
+      : normalizeDate(expense?.updatedAt);
+  const created =
+    expense?.createdAt instanceof Date
+      ? expense.createdAt
+      : normalizeDate(expense?.createdAt);
+  if (updated) return updated.getTime();
+  if (created) return created.getTime();
+  return 0;
+}
+
+function sortExpensesByLatest(expenses) {
+  return [...expenses].sort((a, b) => expenseLatestTime(b) - expenseLatestTime(a));
+}
+
 function toDateInputValue(value) {
   const date = normalizeDate(value);
   if (!date) return "";
@@ -2653,6 +2671,8 @@ export default function App() {
     const groupIds = groupList.map((group) => group.id);
     const buildExpense = (docSnap) => {
       const data = docSnap.data();
+      const createdAt = normalizeDate(data.createdAt);
+      const updatedAt = normalizeDate(data.updatedAt);
       return {
         id: docSnap.id,
         groupId: data.groupId || "",
@@ -2664,10 +2684,8 @@ export default function App() {
         paidByName: data.paidByName || "",
         createdBy: data.createdBy || "",
         splitType: data.splitType || "equal",
-        createdAt:
-          normalizeDate(data.createdAt) ||
-          normalizeDate(data.updatedAt) ||
-          new Date(),
+        createdAt: createdAt || updatedAt || new Date(),
+        updatedAt,
       };
     };
 
@@ -2680,7 +2698,7 @@ export default function App() {
     const mergeExpenses = () => {
       const merged = new Map();
       allExpenses.forEach((item) => merged.set(item.id, item));
-      setExpenseList(Array.from(merged.values()));
+      setExpenseList(sortExpensesByLatest(Array.from(merged.values())));
     };
 
     const unsubscribers = groupIdChunks.map((chunk, index) => {
@@ -3329,15 +3347,16 @@ export default function App() {
         await addDoc(collection(db, "expenses"), {
           groupId: expenseGroupId || "",
           category: expenseCategory.trim(),
-          amount: Number(expenseAmount),
-          note: expenseNote.trim(),
-          currency: expenseCurrency,
-          paidByUid: payerId,
-          paidByName: payerName,
-          splitType: expenseSplitType,
-          createdBy: user.uid,
-          createdAt: Timestamp.fromDate(selectedDate),
-        });
+        amount: Number(expenseAmount),
+        note: expenseNote.trim(),
+        currency: expenseCurrency,
+        paidByUid: payerId,
+        paidByName: payerName,
+        splitType: expenseSplitType,
+        createdBy: user.uid,
+        createdAt: Timestamp.fromDate(selectedDate),
+        updatedAt: serverTimestamp(),
+      });
         const group = groupListWithTotals.find(
           (item) => item.id === expenseGroupId
         );
