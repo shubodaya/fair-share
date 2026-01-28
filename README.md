@@ -3,6 +3,9 @@
 ![Badge](https://img.shields.io/badge/status-live-2ea44f)
 ![Badge](https://img.shields.io/badge/built%20with-React-61dafb)
 ![Badge](https://img.shields.io/badge/deploy-GitHub%20Pages-000000)
+---
+
+![Dashboard](dash.png)
 
 **Fair Share** is a group expense tracker that helps people split costs, track
 balances, and keep shared spending organized. Use it for trips, housemates, or
@@ -26,9 +29,6 @@ Live site: https://shubodaya.github.io/fair-share/
 - Team budgets
 - Any shared spending you want to keep transparent
 
----
-
-![Dashboard](dash.png)
 
 ---
 
